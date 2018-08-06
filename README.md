@@ -6,6 +6,6 @@ I'm working on the example to make it more realestic. Then I complete this readm
 
 A note about movement trust: To keep it smple, when the robot thinks that it moved, either the robot moved to the correct direction or stays where it was before.
 
-Another note that: Remember thet in this example we first affect the robot movement(it can be not moving that it means we go [0, 0]). Then we affect what the robot senses
+Another note that: Remember that in this example we first affect the robot movement(it can be not moving, It means that the value of our action (motion) is [0, 0]). Then we affect what the robot senses
 
 Other notes are in the code's comments.
