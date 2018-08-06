@@ -1,6 +1,6 @@
 Histogram-filter-for-robot-localization
 
-A simple example of robot localization in two dimension field using discrete bayesian filter. Basically it is my solution for tha last quiz of udacity histogram lesson, but a little bit further.
+A simple example of robot localization in two dimension field using discrete bayesian filter. Basically it is my solution for tha last quiz of udacity histogram filtering lesson, but a little bit further.
 
 I'm working on the example to make it more realestic. Then I complete this readme file.
 
