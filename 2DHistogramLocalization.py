@@ -1,6 +1,6 @@
 '''
     File name: 2DHistogramLocalization.py
-    Author: Amirhossein Hakimnejad
+    Author: <a href="mailto:a.hakimnejad@mrl-spl.ir">Amirhossein Hakimnejad</a>
     Date created: August 4, 2018
     Date last modified: August 7, 2018
     Python Version: 3.x
