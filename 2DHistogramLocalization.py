@@ -1,13 +1,140 @@
 '''
-    File name: 2DHistogramLocalization.py
+    File name: fieldMaker.py
     Author: <a href="mailto:a.hakimnejad@mrl-spl.ir">Amirhossein Hakimnejad</a>
     Date created: August 4, 2018
-    Date last modified: August 7, 2018
+    Date last modified: August 9, 2018
     Python Version: 3.x
 '''
+# TODO: Any input exept the known ones, considers as [0, 0] motion and what the rebot sees in his position
+# TODO: The field is still cicular, that
 
-# sensorTrust is the sensors trustworthiness. It is it's probability of being right about what it sees
+import sys, termios, tty, os, time
+from random import randint
+
+# Field length
+A = 90
+# Field width
+B = 60
+# Penalty area length
+E = 6
+# Penalty area width
+F = 22
+# Penalty cross distance
+G = 13
+# Center circle diameter
+H = 15
+
+# realRobotPose is where the robot really is(the red block in terminal) but it does'nt know.
+# So the measurement is based on this position of the field.
+# The robot thinks he is somewhere else but what he sees is matching with the realRobotPose environment.
+# So it tries to localize itself based on this.
+realRobotPose = [29, 30]
+
+# Motion help
+# [0,0] - stay
+# [0,1] - move to right
+# [0,-1] - move to left
+# [1,0] - move down
+# [-1,0] - move up
+
+# 'W': robot senses white color, he sees line in this problem
+# 'B': robot senses black color, anything except lines is black for the robot
+
+# sensorTrust is the sensors trustworthiness. It is it's probability of being right about what it sees.
 # actionTrust is how much the robot is sure about his movement in the right direction
+
+# p is the uniform distribution that the robot has no idea where it is at first
+pinit = 1.0 / float(B / float(A))
+p = [[pinit for row in range(A)] for col in range(B)]
+
+# robotField is a two dimensional matrix of what he knows about the real field.
+# it's kind of a map of the empty field that he use to compare its measurments with is.
+robotField = []
+
+def draw(i, j, A, B, E, F, G, H, realRobotPose, fieldRow, visual):
+
+    def isEdge(i, j, B, A):
+        return i == 0 or i == B - 1 or j == 0 or j == A - 1
+
+    def isMidLine(j, A):
+        return j == int(round(A / 2))
+
+    def isLeftPenaltyBox(i, j, B, E, F):
+        lefBoxVerticLine = j == E - 1 and i > ((B - F) / 2)  and i < (B - F) / 2 + F - 1
+        lefBoxHorizLine =  j < E and (i == int(round((B - F) / 2)) or i == int(round((B - F) / 2 + F) - 1))
+        return lefBoxVerticLine or lefBoxHorizLine
+
+    def isRightPenaltyBox(i, j, A, B, E, F):
+        rightBoxVerticLine = j == A - E and i > (B - F) / 2 and i < (B - F) / 2 + F - 1
+        rightBoxHorizLine = j >= A - E and (i == int(round((B - F) / 2)) or i == int(round((B - F) / 2 + F - 1)))
+        return rightBoxVerticLine or rightBoxHorizLine
+
+    def isPenaltySpot(i, j, A, B, G):
+        leftPenaltySpot = j == G - 1 and i == int(round(B / 2 - 1))
+        rightPenaltySpot = j == A - G and i == int(round(B / 2 - 1))
+        return leftPenaltySpot or rightPenaltySpot
+
+    def isCircle(i, j, A, B, H):
+        mid = [A / 2, B / 2 - 1]
+        return int(round(H/2)) == int(round(((j - mid[0])**2 + (i - mid[1])**2)**0.5))
+
+    def isCenterSpot(i, j, A, B):
+        mid = [A / 2, B / 2 - 1]
+        return i == mid[1] and (j == mid[0] - 1 or j == mid[0] + 1)
+
+    if visual == True:
+        if i == realRobotPose[0] and j == realRobotPose[1]:
+            print ('\033[101m  ', end='')
+        elif isEdge(i, j, B, A) or isMidLine(j, A) or isLeftPenaltyBox(i, j, B, E, F) or isRightPenaltyBox(i, j, A, B, E, F) or isPenaltySpot(i, j, A, B, G) or isCircle(i, j, A, B, H) or isCenterSpot(i, j, A, B):
+            print ('\033[107m  ', end='')
+        else:
+            print ('\033[42m  ', end='')
+    else:
+        if isEdge(i, j, B, A) or isMidLine(j, A) or isLeftPenaltyBox(i, j, B, E, F) or isRightPenaltyBox(i, j, A, B, E, F) or isPenaltySpot(i, j, A, B, G) or isCircle(i, j, A, B, H) or isCenterSpot(i, j, A, B):
+            fieldRow.append('W')
+        else:
+            fieldRow.append('B')
+
+def drawer(A, B, E, F, G, H, realRobotPose, visual):
+    field = []
+    fieldRow = []
+    for i in range(B):
+        for j in range(A):
+            draw(i, j, A, B, E, F, G, H, realRobotPose, fieldRow, visual)
+        if visual == True:
+            print ('\033[0m\n', end='')
+        else:
+            field.append(fieldRow)
+            fieldRow = []
+
+    return field
+
+# Draw the first version of the field with our robot in his place at it's set state
+drawer(A, B, E, F, G, H, realRobotPose, True)
+robotField = drawer(A, B, E, F, G, H, realRobotPose, False)
+
+class _Getch:
+    def __call__(self):
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(3)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+def robotMover(i, j, realRobotPose, kidnapped = False):
+    clear = lambda: os.system('clear')
+    clear()
+    if not kidnapped:
+        realRobotPose[0] += i
+        realRobotPose[1] += j
+    else:
+        realRobotPose[0] = i
+        realRobotPose[1] = j
+    drawer(A, B, E, F, G, H, realRobotPose, True)
+
 def localize(p, field, measurement, motion, sensorTrust, actionTrust):
 
     def normalizer(q, sum, colsNumber):
@@ -35,12 +162,28 @@ def localize(p, field, measurement, motion, sensorTrust, actionTrust):
 
     def sense(p, measurement, trust):
         q = []
+        def xor(measurement, field, pZGivenX, fieldRow, fieldCol):
+            outValue = 'B'
+            for row in range(len(measurement)):
+                for col in range(len(measurement[0])):
+                    outSenario = (row - int(len(measurement)/2)) + fieldRow < 0 or (col - int(len(measurement[0])/2)) + fieldCol < 0 or (row - int(len(measurement)/2)) + fieldRow >= B or (col - int(len(measurement[0])/2)) + fieldCol >= A
+                    if outSenario:
+                        if measurement[row][col] == outValue:
+                            pZGivenX *= trust
+                        else:
+                            pZGivenX *= (1 - trust)
+
+                    elif measurement[row][col] == field[fieldRow + row - int(len(measurement)/2)][fieldCol + col - int(len(measurement[0])/2)]:
+                        pZGivenX *= trust
+                    else:
+                        pZGivenX *= (1 - trust)
+
+            return pZGivenX
+
         for row in range(len(p)):
-            for col in range(len(p[row])):
-                if measurement == field[row][col]:
-                    q.append(p[row][col] * trust)
-                else:
-                    q.append(p[row][col] * (1 - trust))
+            for col in range(len(p[0])):
+                pZGivenX = xor(measurement, robotField, 1, row, col)
+                q.append(p[row][col] * pZGivenX)
 
         s = sum(q)
         q = normalizer(q, s, len(p[0]))
@@ -50,33 +193,94 @@ def localize(p, field, measurement, motion, sensorTrust, actionTrust):
     p = sense(p, measurement, sensorTrust)
     return p
 
-# W: robot senses white color
-# B: robot senses black color
-field = [['W','B','B','W','W'],
-          ['W','W','B','W','W'],
-          ['W','W','B','B','W'],
-          ['W','W','W','W','W']]
+def printt(p):
+    print()
+    for i in range(len(p)):
+        for j in range(len(p[0])):
+            print('   '+str(p[i][j]) + '  ', end='')
+        print()
 
-# p is the uniform distribution that the robot has no idea where it is at first
-pinit = 1.0 / float(len(field)) / float(len(field[0]))
-p = [[pinit for row in range(len(field[0]))] for col in range(len(field))]
+def getch():
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
 
-# In this example, first the robot moves, then it senses and it sees the color of where it standing
-# Motion help
-# [0,0] - stay
-# [0,1] - move to right
-# [0,-1] - move to left
-# [1,0] - move down
-# [-1,0] - move up
-motions = [[0,0],[0,1],[1,0],[1,0],[0,1]]
-measurements = ['B','B','B','B','B']
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
 
-for i in range(len(motions)):
-    p = localize(p, field, measurements[i], motions[i], sensorTrust = 0.7, actionTrust = 0.8)
+def saveToFile(p):
+    rows = [','.join(map(lambda x: '{0:.5f}'.format(x),r)) for r in p]
+    csv = '\n '.join(rows)
+    with open('distribution.csv', 'w') as f:
+        f.write(csv)
 
-# displays final distribution
-def show(p):
-    rows = ['[' + ','.join(map(lambda x: '{0:.5f}'.format(x),r)) + ']' for r in p]
-    print ('[' + ',\n '.join(rows) + ']')
+def play(p, realRobotPose):
+    saveToFile(p)
+    while True:
+        i = 0
+        j = 0
+        kidnapped = False
+        char = getch()
 
-show(p)
+        if (char == "q"):
+            break
+
+        if (char == "a"):
+            motion = [0,-1]
+            j -= 1
+
+        elif (char == "d"):
+            motion = [0,1]
+            j += 1
+
+        elif (char == "w"):
+            motion = [-1,0]
+            i -= 1
+
+        elif (char == "s"):
+            motion= [1, 0]
+            i += 1
+
+        elif (char == "k"):
+            motion[0] = 0
+            motion[1] = 0
+            i = randint(0, 60)
+            j = randint(0, 90)
+            kidnapped = True
+
+        else:
+            motion = [0,0]
+
+        if randint(0, 100) > 90:
+            i = 0
+            j = 0
+
+        robotMover(i, j, realRobotPose, kidnapped)
+        measurementRow = []
+        measurement = []
+        for x in range(-4, 5):
+            for y in range(-4, 5):
+                if realRobotPose[0] + x < 0 or realRobotPose[1] + y < 0 or realRobotPose[0] + x >= len(robotField) or realRobotPose[1] + y >= len(robotField[0]):
+                    measurementRow.append('B')
+                    print ('\033[42m  ', end='')
+
+                else:
+                    measurementRow.append(robotField[realRobotPose[0] + x][realRobotPose[1] + y])
+                    if robotField[realRobotPose[0] + x][realRobotPose[1] + y] == 'B':
+                        print ('\033[42m   ', end='')
+                    else:
+                        print ('\033[107m   ', end='')
+
+            print()
+            measurement.append(measurementRow)
+            measurementRow = []
+
+        print ('\033[0m\n', end='')
+        p = localize(p, robotField, measurement, motion, sensorTrust = 0.7, actionTrust = 0.6)
+        saveToFile(p)
+        # displays final distribution
+
+play(p, realRobotPose)
