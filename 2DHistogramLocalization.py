@@ -48,9 +48,6 @@ measurementLength = 13
 sensorTrust = 0.7
 actionTrust = 0.6
 
-# robotField is a two dimensional matrix of what he knows about the real field.
-# it's kind of a map of the empty field that he use to compare its measurments with is.
-
 # inputLuck is the percentage of the luck that input work or not. That means you may press 'd' for example but the robot stays where it was beforeself.
 # It is seperate from motion or measurement trust. Its more like a noise.
 inputLuck = 80
@@ -184,13 +181,6 @@ def localize(p, field, measurement, motion, sensorTrust, actionTrust):
     p = sense(p, measurement, sensorTrust)
     return p
 
-def printt(p):
-    print()
-    for i in range(len(p)):
-        for j in range(len(p[0])):
-            print('   '+str(p[i][j]) + '  ', end='')
-        print()
-
 def getch():
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
@@ -272,6 +262,8 @@ def play(p, realRobotPose, measurementLength, inputLuck, sensorTrust, actionTrus
         saveToFile(p)
         # displays final distribution after each localize() call
 
+# robotField is a two dimensional matrix of what he knows about the real field.
+# it's kind of a map of the empty field that he use to compare its measurments with is.
 robotField = []
 # p is the uniform distribution that the robot has no idea where it is at first
 pinit = 1.0 / float(B / float(A))
