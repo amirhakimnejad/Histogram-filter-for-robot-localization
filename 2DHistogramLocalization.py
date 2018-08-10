@@ -1,5 +1,5 @@
 '''
-    File name: fieldMaker.py
+    File name: 2DHistogramLocalization.py
     Author: <a href="mailto:a.hakimnejad@mrl-spl.ir">Amirhossein Hakimnejad</a>
     Date created: August 4, 2018
     Date last modified: August 10, 2018
@@ -154,8 +154,8 @@ def localize(p, field, measurement, motion, sensorTrust, actionTrust):
             outValue = 'B'
             for row in range(len(measurement)):
                 for col in range(len(measurement[0])):
-                    outSenario = (row - int(len(measurement)/2)) + fieldRow < 0 or (col - int(len(measurement[0])/2)) + fieldCol < 0 or (row - int(len(measurement)/2)) + fieldRow >= B or (col - int(len(measurement[0])/2)) + fieldCol >= A
-                    if outSenario:
+                    outscenario = (row - int(len(measurement)/2)) + fieldRow < 0 or (col - int(len(measurement[0])/2)) + fieldCol < 0 or (row - int(len(measurement)/2)) + fieldRow >= B or (col - int(len(measurement[0])/2)) + fieldCol >= A
+                    if outscenario:
                         if measurement[row][col] == outValue:
                             pZGivenX *= trust
                         else:
