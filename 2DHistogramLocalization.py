@@ -12,7 +12,7 @@
 import sys, termios, tty, os, time
 from random import randint
 
-# Everything you need to edit is here
+######### Everything you need to edit is here #########
 # Field length
 A = 100
 # Field width
@@ -114,17 +114,6 @@ def drawer(A, B, E, F, G, H, realRobotPose, visual):
             fieldRow = []
 
     return field
-
-class _Getch:
-    def __call__(self):
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(3)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
 
 def robotMover(i, j, realRobotPose, kidnapped = False):
     clear = lambda: os.system('clear')
@@ -281,7 +270,7 @@ def play(p, realRobotPose, measurementLength, inputLuck, sensorTrust, actionTrus
         print ('\033[0m\n\n', end='')
         p = localize(p, robotField, measurement, motion ,sensorTrust, actionTrust)
         saveToFile(p)
-        # displays final distribution
+        # displays final distribution after each localize() call
 
 robotField = []
 # p is the uniform distribution that the robot has no idea where it is at first
