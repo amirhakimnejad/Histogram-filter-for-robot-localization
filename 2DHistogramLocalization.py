@@ -12,7 +12,7 @@
 import sys, termios, tty, os, time
 from random import randint
 
-#
+# Everything you need to edit is here
 # Field length
 A = 100
 # Field width
@@ -51,6 +51,8 @@ actionTrust = 0.6
 # robotField is a two dimensional matrix of what he knows about the real field.
 # it's kind of a map of the empty field that he use to compare its measurments with is.
 
+# inputLuck is the percentage of the luck that input work or not. That means you may press 'd' for example but the robot stays where it was beforeself.
+# It is seperate from motion or measurement trust. Its more like a noise.
 inputLuck = 80
 
 # 'W': robot senses white color, he sees line in this problem
