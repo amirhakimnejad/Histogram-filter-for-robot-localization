@@ -219,7 +219,6 @@ def play(p, realRobotPose, measurementLength, inputLuck, sensorTrust, actionTrus
             i -= 1
 
         elif (char == "s"):
-
             i += 1
 
         elif (char == "k"):
@@ -229,7 +228,6 @@ def play(p, realRobotPose, measurementLength, inputLuck, sensorTrust, actionTrus
         if randint(0, 100) > inputLuck:
             i = 0
             j = 0
-
 
         if kidnapped:
             robotMover(randint(0, B - 1), randint(0, A - 1), realRobotPose, kidnapped)
