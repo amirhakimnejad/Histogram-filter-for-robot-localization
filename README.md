@@ -8,49 +8,72 @@ To see the change of the robotField distribution, you need to use matlab to draw
 ### Installing
 
 To use it, first you just need to clone it using
+
 ```
 git clone git@github.com:amirhakimnejad/Histogram-filter-for-robot-localization.git
 ```
 
 To use it for fun, just enter following code in terminal:
+
 ```
 python3 2DHistogramLocalization.py
 ```
+
 Here is your football field and a robot in it. A note that the robot hasn't seen anything or moved anywhere yet. It means we have a uniform distribution of the probability. It has no idea where it is right now.
+
 ![Alt text](readmePics/ReadyState.png?raw=true "Ready state of the robot in the field")
+
 If you have matlab, open plotDistribution.m and run it.You will get this as result:
+
 ![Alt text](readmePics/UniformInReadyState.jpg?raw=true "Uniform distribution")
 
 Shortcuts of the inputs:
+
 Press 'a' for going left.
+
 Press 'w' for going up.
+
 Press 'd' for going right.
+
 Press 's' for going down.
+
 Press 'k' for kidnapped scenario.
+
 Press 'q' to stop the program.
+
 Kidnapped scenario is when someone just pick up the robot and put it somewhere else.
+
 Any other input considers as a stand frame. The robot senses but he stands where he is.
 
 You can simply change values of local variables to have different field dimensions, different length of what the robot sees, different sensor or action trust or anything else(See variables section).
+
 I tried my best to implement the code as relative as possible.
 
 As you move, the algorithm adds up the probability of where you were to where you might go and it uses bayes rule to count the probability of where you are using the robot sensors data of what it sees around itself.
+
 I'll explain more in Algorithm and functions sections.
 
 After first input, the robot starts to sense. Watch the change of our distribution:
+
 ![Alt text](readmePics/FirstSense.jpg?raw=true "First Sense")
+
 ![Alt text](readmePics/DistAfterFirstSense.jpg?raw=true "Distribution After First  Sense")
+
 As you can see all the probabilities are affected based on what the robot see.
 
 If you go right enough, the robot starts seeing lines, Watch the changes:
+
 ![Alt text](readmePics/LineDetected.jpg?raw=true "Line Detected")
+
 ![Alt text](readmePics/DistAfterLineDetection.jpg?raw=true "Distribution After Line Detection")
 
 
 ### Algorithm
 
 This implementation is based on histogram filter algorithm.
+
 ![Alt text](readmePics/AlgorithmDiscreteBayesFilter.png?raw=true "Algorithm")
+
 It is a screenshot of [Probabilistic Robotics](https://play.google.com/store/books/details?pcampaignid=books_read_action&id=wjM3AgAAQBAJ) book written by Sebastian Thrun, Wolfram Burgard and Dieter Fox.
 
 ### How each function works
@@ -58,35 +81,47 @@ It is a screenshot of [Probabilistic Robotics](https://play.google.com/store/boo
 ```python
 draw(i, j, A, B, E, F, G, H, realRobotPose, fieldRow, visual)
 ```
-Watch [this repo](https://github.com/amirhakimnejad/Program-to-draw-a-football-field).
+
+Watch [this repo](https://github.com/amirhakimnejad/Program-to-draw-a-football-field)
+
 The only difference between the repo and the function is realRobotPose, fieldRow, visual inputs.If the visual argument is true it simply works just like the repo and it makes the position of the robot(We know where it is but it doesn't) on the field, red. With visual set to False the function makes a two dimension array of the field.
 
 ```python
 drawer(A, B, E, F, G, H, realRobotPose, visual)
 ```
+
 It just helps to separate rows from columns. It is actually an entry to call draw() function.
 
 ```python
 robotMover(i, j, realRobotPose, kidnapped = False):
 ```
+
 It simply gets the realRobotPose(where it really is) and affect our input key and change its location on the field. Note that the function has nothing to do with the robot knowledge.
 
 ```python
 localize(p, field, measurement, motion, sensorTrust, actionTrust)
 ```
+
 It gets the distribution of what the robot knows, its measurment(what it sees) motion(where it wants to go), sensorTrust and actionTrust.The function affect robot's motion in the distribution, then affect the measurment in the distribution and it normalizes it.  
 
 Other functions are easy to undrestand. Ask question if you want me to explain them.
+
 ### Meaning of variables
 
 #### Global variables:
 
 A: Field length
+
 B: Field width
+
 E: Penalty area length
+
 F: Penalty area width
+
 G: Penalty cross distance
+
 H: Center circle diameter
+
 
 realRobotPose: realRobotPose is where the robot really is(the red block in terminal) but it does'nt know.So the measurement is based on this position of the field.The robot thinks he is somewhere else but what he sees is matching with the realRobotPose environment.So it tries to localize itself based on this.
 
