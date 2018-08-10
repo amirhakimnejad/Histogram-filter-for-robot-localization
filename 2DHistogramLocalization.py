@@ -2,25 +2,27 @@
     File name: fieldMaker.py
     Author: <a href="mailto:a.hakimnejad@mrl-spl.ir">Amirhossein Hakimnejad</a>
     Date created: August 4, 2018
-    Date last modified: August 9, 2018
+    Date last modified: August 10, 2018
     Python Version: 3.x
 '''
-# TODO: Any input exept the known ones, considers as [0, 0] motion and what the rebot sees in his position
-# TODO: The field is still cicular, that
+# TODO: The field distribution is still cicular
+# TODO: Get max item of distribution and show it in the field in another color
+# TODO: If input was empty for 0.7 of a second or 1, consider it as a stand frame for the robot
 
 import sys, termios, tty, os, time
 from random import randint
 
+#
 # Field length
-A = 90
+A = 100
 # Field width
-B = 60
+B = 50
 # Penalty area length
-E = 6
+E = 18
 # Penalty area width
-F = 22
+F = 44
 # Penalty cross distance
-G = 13
+G = 12
 # Center circle diameter
 H = 15
 
@@ -30,6 +32,9 @@ H = 15
 # So it tries to localize itself based on this.
 realRobotPose = [29, 30]
 
+# measurement is a square matrix of what the robot sees
+measurementLength = 13
+
 # Motion help
 # [0,0] - stay
 # [0,1] - move to right
@@ -37,20 +42,19 @@ realRobotPose = [29, 30]
 # [1,0] - move down
 # [-1,0] - move up
 
-# 'W': robot senses white color, he sees line in this problem
-# 'B': robot senses black color, anything except lines is black for the robot
 
 # sensorTrust is the sensors trustworthiness. It is it's probability of being right about what it sees.
 # actionTrust is how much the robot is sure about his movement in the right direction
-
-# p is the uniform distribution that the robot has no idea where it is at first
-pinit = 1.0 / float(B / float(A))
-p = [[pinit for row in range(A)] for col in range(B)]
+sensorTrust = 0.7
+actionTrust = 0.6
 
 # robotField is a two dimensional matrix of what he knows about the real field.
 # it's kind of a map of the empty field that he use to compare its measurments with is.
-robotField = []
 
+inputLuck = 80
+
+# 'W': robot senses white color, he sees line in this problem
+# 'B': robot senses black color, anything except lines is black for the robot
 def draw(i, j, A, B, E, F, G, H, realRobotPose, fieldRow, visual):
 
     def isEdge(i, j, B, A):
@@ -108,10 +112,6 @@ def drawer(A, B, E, F, G, H, realRobotPose, visual):
             fieldRow = []
 
     return field
-
-# Draw the first version of the field with our robot in his place at it's set state
-drawer(A, B, E, F, G, H, realRobotPose, True)
-robotField = drawer(A, B, E, F, G, H, realRobotPose, False)
 
 class _Getch:
     def __call__(self):
@@ -217,59 +217,57 @@ def saveToFile(p):
     with open('distribution.csv', 'w') as f:
         f.write(csv)
 
-def play(p, realRobotPose):
+def play(p, realRobotPose, measurementLength, inputLuck, sensorTrust, actionTrust):
     saveToFile(p)
     while True:
         i = 0
         j = 0
         kidnapped = False
         char = getch()
-
+        motion = [0, 0]
         if (char == "q"):
             break
 
         if (char == "a"):
-            motion = [0,-1]
             j -= 1
 
         elif (char == "d"):
-            motion = [0,1]
             j += 1
 
         elif (char == "w"):
-            motion = [-1,0]
             i -= 1
 
         elif (char == "s"):
-            motion= [1, 0]
+
             i += 1
 
         elif (char == "k"):
-            motion[0] = 0
-            motion[1] = 0
-            i = randint(0, 60)
-            j = randint(0, 90)
             kidnapped = True
 
-        else:
-            motion = [0,0]
-
-        if randint(0, 100) > 90:
+        motion = [i, j]
+        if randint(0, 100) > inputLuck:
             i = 0
             j = 0
 
-        robotMover(i, j, realRobotPose, kidnapped)
+
+        if kidnapped:
+            robotMover(randint(0, B - 1), randint(0, A - 1), realRobotPose, kidnapped)
+        else:
+            robotMover(i, j, realRobotPose, kidnapped)
+
         measurementRow = []
         measurement = []
-        for x in range(-4, 5):
-            for y in range(-4, 5):
+        for x in range(int(measurementLength/2*-1), int(measurementLength/2) + 1):
+            for y in range(int(measurementLength/2*-1), int(measurementLength/2) + 1):
                 if realRobotPose[0] + x < 0 or realRobotPose[1] + y < 0 or realRobotPose[0] + x >= len(robotField) or realRobotPose[1] + y >= len(robotField[0]):
                     measurementRow.append('B')
-                    print ('\033[42m  ', end='')
+                    print ('\033[42m   ', end='')
 
                 else:
                     measurementRow.append(robotField[realRobotPose[0] + x][realRobotPose[1] + y])
-                    if robotField[realRobotPose[0] + x][realRobotPose[1] + y] == 'B':
+                    if x == 0 and y == 0:
+                        print ('\033[101m   ', end='')
+                    elif robotField[realRobotPose[0] + x][realRobotPose[1] + y] == 'B':
                         print ('\033[42m   ', end='')
                     else:
                         print ('\033[107m   ', end='')
@@ -278,9 +276,19 @@ def play(p, realRobotPose):
             measurement.append(measurementRow)
             measurementRow = []
 
-        print ('\033[0m\n', end='')
-        p = localize(p, robotField, measurement, motion, sensorTrust = 0.7, actionTrust = 0.6)
+        print ('\033[0m\n\n', end='')
+        p = localize(p, robotField, measurement, motion ,sensorTrust, actionTrust)
         saveToFile(p)
         # displays final distribution
 
-play(p, realRobotPose)
+robotField = []
+# p is the uniform distribution that the robot has no idea where it is at first
+pinit = 1.0 / float(B / float(A))
+p = [[pinit for row in range(A)] for col in range(B)]
+
+# Draw the first version of the field with our robot in his place at it's set state
+drawer(A, B, E, F, G, H, realRobotPose, True)
+robotField = drawer(A, B, E, F, G, H, realRobotPose, False)
+
+# Let's play
+play(p, realRobotPose, measurementLength, inputLuck, sensorTrust, actionTrust)
